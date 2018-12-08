@@ -378,23 +378,6 @@ public class ConcreteOneDriveSDKTest {
         Assert.assertEquals("root", folder.getParentFolder().getName());
     }
 
-    @Test
-    public void testFactory() {
-        Assert.assertNotNull(new OneDriveFactory());
-        Assert.assertNotNull(OneDriveFactory.createOneDriveSDK(OneDriveCredentials.getClientId(), OneDriveCredentials.getClientSecret(), OneDriveScope.READWRITE));
-        Assert.assertNotNull(OneDriveFactory.createOneDriveSDK(OneDriveCredentials.getClientId(), OneDriveCredentials.getClientSecret(),"",OneDriveScope.READWRITE));
-        Assert.assertNotNull(OneDriveFactory.createOneDriveSDK(OneDriveCredentials.getClientId(), OneDriveCredentials.getClientSecret(), "", new ExceptionEventHandler() {
-            @Override
-            public void handle(Exception e) {
-
-            }
-
-            @Override
-            public void handle(Object src, Exception e) {
-
-            }
-        }, OneDriveScope.READWRITE));
-    }
 
     private OneDriveSDK connect(){
         return TestSDKFactory.getInstance();

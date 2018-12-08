@@ -43,7 +43,7 @@ public class ConcreteOneUploadFileTest {
 	public void testCreateUploadSession() throws InstantiationException,
 			IllegalAccessException, IllegalArgumentException,
 			InvocationTargetException, NoSuchMethodException,
-			SecurityException, NoSuchFieldException, ClassNotFoundException, IOException,OneDriveAuthenticationException {
+			SecurityException, NoSuchFieldException, ClassNotFoundException, IOException, OneDriveException {
 		
 		UploadSession upSession = getEmptyUploadSession();
 

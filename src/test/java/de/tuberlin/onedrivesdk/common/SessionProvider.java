@@ -1,6 +1,6 @@
 package de.tuberlin.onedrivesdk.common;
 
-import com.squareup.okhttp.OkHttpClient;
+import okhttp3.OkHttpClient;
 import de.tuberlin.onedrivesdk.OneDriveException;
 import de.tuberlin.onedrivesdk.networking.OneDriveSession;
 
@@ -40,7 +40,7 @@ public class SessionProvider  {
 
     private static OneDriveSession openSession() throws IOException, OneDriveException {
         final OneDriveSession session = OneDriveSession.initializeSession(new OkHttpClient(),clientID, clientSecret,
-                null,new OneDriveScope[]{OneDriveScope.SIGNIN, OneDriveScope.OFFLINE_ACCESS, OneDriveScope.READWRITE});
+                null,new OneDriveScope[]{OneDriveScope.FILES_READWRITE_ALL, OneDriveScope.OFFLINE_ACCESS});
 
 
         openWebpage(new URL(session.getAccessURL()));

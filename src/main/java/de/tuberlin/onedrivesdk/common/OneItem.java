@@ -107,7 +107,7 @@ public abstract class OneItem {
      *
      * @param json JSON from the OneDrive API
      * @return OneItem
-     * @throws ParseException if the JSON can not be parsed
+     * @throws ParseException    if the JSON can not be parsed
      * @throws OneDriveException if the JSON contains an OneDrive Error object from the API
      */
     public static OneItem fromJSON(String json) throws ParseException, OneDriveException {
@@ -131,7 +131,7 @@ public abstract class OneItem {
      *
      * @param json JSON from the OneDrive API
      * @return a List of OneItems
-     * @throws ParseException if the JSON can not be parsed
+     * @throws ParseException    if the JSON can not be parsed
      * @throws OneDriveException if the JSON contains an OneDrive Error object from the API
      */
     public static List<OneItem> parseItemsFromJson(String json) throws ParseException, OneDriveException {
@@ -144,7 +144,7 @@ public abstract class OneItem {
      * @param json JSON from the OneDrive API
      * @param type OneItemType, can be used to define which type of items should be parsed
      * @return items from json
-     * @throws ParseException if the JSON can not be parsed
+     * @throws ParseException    if the JSON can not be parsed
      * @throws OneDriveException if the json dose not contain a 'value' attribute
      */
     public static List<OneItem> parseItemsFromJson(String json, OneItemType type) throws ParseException, OneDriveException {
@@ -331,6 +331,10 @@ public abstract class OneItem {
         return this.webUrl;
     }
 
+    public String createLink() throws IOException, OneDriveException {
+        return api.createLinkById(id);
+    }
+
     /**
      * Gets the parent folder.
      *
@@ -390,7 +394,7 @@ public abstract class OneItem {
      * @throws OneDriveException
      */
     public OneItem refreshItem() throws IOException, OneDriveException {
-        if(this instanceof OneFile){
+        if (this instanceof OneFile) {
             return (OneItem) api.getFileById(id);
         } else {
             return (OneItem) api.getFolderById(id);

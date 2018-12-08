@@ -3,6 +3,7 @@ package de.tuberlin.onedrivesdk;
 import de.tuberlin.onedrivesdk.folder.OneFolder;
 import de.tuberlin.onedrivesdk.drive.OneDrive;
 import de.tuberlin.onedrivesdk.file.OneFile;
+import de.tuberlin.onedrivesdk.networking.OneDriveAuthenticationException;
 import de.tuberlin.onedrivesdk.networking.OneDriveSession;
 
 import java.io.IOException;
@@ -144,15 +145,16 @@ public interface OneDriveSDK {
      * @throws OneDriveException
      */
     void authenticateWithRefreshToken(String refreshToken) throws IOException, OneDriveException;
-    
+
     /**
      * Returns the RefreshToken of the Current Session, if any exists and
      * the current session is valid.
-     *
+     * <p>
      * A refresh token is only generated if @see OneDriveScope.OFFLINE_ACCESS has been requested for this
      * session.
      *
      * <b><big>WARNING</big> The RefreshToken is equivalent to a user password and should be stored/encrypted similarly. </b>
+     *
      * @return
      * @throws OneDriveException
      */
@@ -167,12 +169,14 @@ public interface OneDriveSDK {
 
     /**
      * Returns the OneDrive oAuth URL.
+     *
      * @return url
      */
     String getAuthenticationURL();
 
     /**
      * Returns true if the session is authenticated.
+     *
      * @return is authenticated
      */
     boolean isAuthenticated();
@@ -184,4 +188,6 @@ public interface OneDriveSDK {
      * @see OneDriveSession#startRefreshThread()
      */
     void startSessionAutoRefresh();
+
+    String createLinkById(String id) throws IOException, OneDriveAuthenticationException, OneDriveException;
 }

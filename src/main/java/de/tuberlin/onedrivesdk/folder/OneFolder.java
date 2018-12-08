@@ -11,9 +11,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
+
 /**
  * This Interface provides all Methods to handle a Folder
- *
  */
 public interface OneFolder {
 
@@ -80,6 +80,8 @@ public interface OneFolder {
      */
     String getWebUrl();
 
+    String createLink() throws IOException, OneDriveException;
+
     /**
      * Gets the size of this item in bytes.
      *
@@ -101,7 +103,7 @@ public interface OneFolder {
      * @throws OneDriveException
      * @throws IOException
      */
-    OneFolder refresh() throws  OneDriveException, IOException;
+    OneFolder refresh() throws OneDriveException, IOException;
 
     /**
      * Gets the currents folders parent.
@@ -153,7 +155,7 @@ public interface OneFolder {
     /**
      * Create a folder with the specified name in the current folder.
      *
-     * @param name of the new folder
+     * @param name     of the new folder
      * @param behavior the behavior in case of name conflict
      * @return folder
      * @throws IOException
@@ -180,6 +182,8 @@ public interface OneFolder {
      */
     OneUploadFile uploadFile(File file) throws IOException, OneDriveException;
 
+    OneUploadFile uploadFile(File file, String fileName) throws IOException, OneDriveException;
+
     String toString();
 
 
@@ -190,7 +194,7 @@ public interface OneFolder {
      * @throws OneDriveException
      * @throws IOException
      */
-    boolean delete() throws OneDriveException,IOException;
+    boolean delete() throws OneDriveException, IOException;
 
     /**
      * Gets the raw JSON which is received from the OneDrive API.

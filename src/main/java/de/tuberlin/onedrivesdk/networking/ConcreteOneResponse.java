@@ -1,6 +1,6 @@
 package de.tuberlin.onedrivesdk.networking;
 
-import com.squareup.okhttp.Response;
+import okhttp3.Response;
 
 import java.io.IOException;
 import java.util.List;

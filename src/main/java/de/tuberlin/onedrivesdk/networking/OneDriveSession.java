@@ -2,7 +2,7 @@ package de.tuberlin.onedrivesdk.networking;
 
 import com.google.gson.*;
 import com.google.gson.annotations.Expose;
-import com.squareup.okhttp.*;
+import okhttp3.*;
 import de.tuberlin.onedrivesdk.OneDriveException;
 import de.tuberlin.onedrivesdk.common.ExceptionEventHandler;
 import de.tuberlin.onedrivesdk.common.OneDriveScope;
@@ -26,7 +26,7 @@ public class OneDriveSession implements Runnable {
 
     private static final Logger logger = LogManager.getLogger(OneDriveSession.class);
 
-    private final static String ENDPOINT = "https://login.live.com";
+    private final static String ENDPOINT = "https://login.microsoftonline.com";
     private final long refreshDelay = 3000 * 1000;//3000 sec to ms
 
     @Expose
@@ -119,7 +119,7 @@ public class OneDriveSession implements Runnable {
     private static void handleAuthRequest(OneDriveSession session, String messageBody) throws OneDriveAuthenticationException {
         JSONParser jsonParser = new JSONParser();
         //Url of the second step of the Code-FLow guide
-        String oAuthCodeRedeemURL = String.format("%s/oauth20_token.srf", ENDPOINT);
+        String oAuthCodeRedeemURL = String.format("%s/common/oauth2/v2.0/token", ENDPOINT);
 
         RequestBody oAuthCodeRedeemBody = RequestBody.create(MediaType.parse("application/x-www-form-urlencoded"), messageBody);
         // Create request for remote resource.
@@ -307,7 +307,7 @@ public class OneDriveSession implements Runnable {
         } catch (UnsupportedEncodingException e) {
             logger.error("Error while encoding scopeString to url, using UTF-8",e);
         }
-        String uri = String.format("%s/oauth20_authorize.srf?client_id=%s&scope=%s&response_type=code", ENDPOINT, clientID, scope);
+        String uri = String.format("%s/common/oauth2/v2.0/authorize?client_id=%s&scope=%s&response_type=code", ENDPOINT, clientID, scope);
 
         if (this.redirect_uri != null) {
             uri += String.format("&redirect_uri=%s", this.redirect_uri);

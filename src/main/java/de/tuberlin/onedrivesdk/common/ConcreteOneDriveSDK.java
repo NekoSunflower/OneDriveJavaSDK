@@ -1,10 +1,10 @@
 package de.tuberlin.onedrivesdk.common;
 
 import com.google.gson.Gson;
-import com.squareup.okhttp.OkHttpClient;
-import com.squareup.okhttp.Request;
-import com.squareup.okhttp.RequestBody;
-import com.squareup.okhttp.Response;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 import de.tuberlin.onedrivesdk.OneDriveException;
 import de.tuberlin.onedrivesdk.OneDriveSDK;
 import de.tuberlin.onedrivesdk.drive.ConcreteOneDrive;
@@ -17,15 +17,20 @@ import de.tuberlin.onedrivesdk.networking.*;
 import de.tuberlin.onedrivesdk.uploadFile.UploadSession;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 /**
@@ -33,9 +38,9 @@ import java.util.List;
  */
 public class ConcreteOneDriveSDK implements OneDriveSDK {
     private static final Logger logger = LogManager.getLogger(OneDriveSession.class);
-    private static final Gson gson = new Gson();
+    private static final Gson   gson   = new Gson();
 
-    private String baseUrl = "https://api.onedrive.com/v1.0/";
+    private String          baseUrl = "https://graph.microsoft.com/v1.0/me/";
     private OneDriveSession session;
 
     /**
@@ -57,10 +62,10 @@ public class ConcreteOneDriveSDK implements OneDriveSDK {
      * @param scopes
      * @return OneDriveSDK
      */
-    public static OneDriveSDK createOneDriveConnection(String clientId, String clientSecret,String redirect_uri,ExceptionEventHandler handler, OneDriveScope[] scopes) {
+    public static OneDriveSDK createOneDriveConnection(String clientId, String clientSecret, String redirect_uri, ExceptionEventHandler handler, OneDriveScope[] scopes) {
         OkHttpClient cli = new OkHttpClient();
-        cli.setFollowRedirects(false);
-        OneDriveSession session = OneDriveSession.initializeSession(cli, clientId, clientSecret,redirect_uri, scopes);
+        cli.newBuilder().followRedirects(true);
+        OneDriveSession session = OneDriveSession.initializeSession(cli, clientId, clientSecret, redirect_uri, scopes);
         return new ConcreteOneDriveSDK(session);
     }
 
@@ -82,7 +87,7 @@ public class ConcreteOneDriveSDK implements OneDriveSDK {
         }
 
         for (OneDrive drive : drives) {
-            ((ConcreteOneDrive)drive).setApi(this);
+            ((ConcreteOneDrive) drive).setApi(this);
         }
 
         return drives;
@@ -249,8 +254,8 @@ public class ConcreteOneDriveSDK implements OneDriveSDK {
 
     @Override
     public String getRefreshToken() throws OneDriveException {
-        if(!this.session.isAuthenticated() || this.session.getRefreshToken() == null
-                || this.session.getRefreshToken().isEmpty()){
+        if (!this.session.isAuthenticated() || this.session.getRefreshToken() == null
+                || this.session.getRefreshToken().isEmpty()) {
             throw new OneDriveException("can not return a valid refreshToken");
         }
         return this.session.getRefreshToken();
@@ -280,15 +285,30 @@ public class ConcreteOneDriveSDK implements OneDriveSDK {
      * @throws IOException
      */
     public UploadSession createUploadSession(ConcreteOneFolder folder,
-                                             String fileName) throws IOException, OneDriveAuthenticationException {
-        String requestURL = "drive/items/%s:/%s:/upload.createSession";
+                                             String fileName) throws IOException, OneDriveException {
+        String requestURL = "drive/items/%s:/%s:/createUploadSession";
 
-        String url = String.format(requestURL, folder.getId(), fileName);
+        String url = String.format(requestURL, folder.getId(), replaceFileName(fileName));
         PreparedRequest request = new PreparedRequest(url, PreparedRequestMethod.POST);
+        request.addHeader("Content-Type", "application/json");
+        request.setBody("{}".getBytes());
 
         String json = this.makeRequest(request).getBodyAsString();
-
+        OneDriveError error;
+        try {
+            if ((error = OneDriveError.parseError(json)) != null) {
+                throw new OneDriveException(error.toString());
+            }
+        } catch (ParseException e) {
+            throw new OneDriveException(json);
+        }
         return gson.fromJson(json, UploadSession.class);
+    }
+
+    private String replaceFileName(String fileName) {
+        Pattern pattern = Pattern.compile("[\\s\\\\/:\\*\\?\\\"<>\\|]");
+        Matcher matcher = pattern.matcher(fileName);
+        return matcher.replaceAll("");
     }
 
     /**
@@ -363,8 +383,10 @@ public class ConcreteOneDriveSDK implements OneDriveSDK {
      */
     public OneResponse makeRequest(String url, PreparedRequestMethod method, String json) throws IOException, OneDriveAuthenticationException {
         PreparedRequest request = new PreparedRequest(url, method);
-        request.addHeader("Content-Type", "application/json");
-        request.setBody(json.getBytes());
+        if (json != null) {
+            request.addHeader("Content-Type", "application/json");
+            request.setBody(json.getBytes());
+        }
         return makeRequest(request);
     }
 
@@ -377,7 +399,7 @@ public class ConcreteOneDriveSDK implements OneDriveSDK {
      */
     public OneResponse makeRequest(PreparedRequest preparedRequest) throws IOException, OneDriveAuthenticationException {
 
-        if(!this.session.isAuthenticated()){
+        if (!this.session.isAuthenticated()) {
             throw new OneDriveAuthenticationException("Session is no longer valid. Look for a failure of the refresh Thread in the log.");
         }
 
@@ -394,7 +416,7 @@ public class ConcreteOneDriveSDK implements OneDriveSDK {
             url = String.format("%s%s?access_token=%s", this.baseUrl, preparedRequest.getPath(), session.getAccessToken());
         }
 
-        logger.debug(String.format("making request to %s",url));
+        logger.debug(String.format("making request to %s", url));
 
         Request.Builder builder = new Request.Builder().method(preparedRequest.getMethod(), body).url(url);
 
@@ -536,7 +558,7 @@ public class ConcreteOneDriveSDK implements OneDriveSDK {
      * @throws IOException
      */
     public byte[] download(String fileID) throws IOException, OneDriveAuthenticationException {
-        session.getClient().setFollowRedirects(false);
+        session.getClient().newBuilder().followRedirects(true);
 
         String url = "drive/items/%s/content";
         url = String.format(url, fileID);
@@ -585,7 +607,7 @@ public class ConcreteOneDriveSDK implements OneDriveSDK {
         if (newName != null)
             destination.setName(newName);
 
-        String url = String.format("drive/items/%s/action.copy", id);
+        String url = String.format("drive/items/%s/copy", id);
         String json = gson.toJson(destination);
 
         PreparedRequest request = new PreparedRequest(url, PreparedRequestMethod.POST);
@@ -651,5 +673,26 @@ public class ConcreteOneDriveSDK implements OneDriveSDK {
     @Override
     public void startSessionAutoRefresh() {
         this.session.startRefreshThread();
+    }
+
+    @Override
+    public String createLinkById(String id) throws IOException, OneDriveException {
+        String requestURL = String.format("drive/items/%s/createLink", id);
+
+        PreparedRequest request = new PreparedRequest(requestURL, PreparedRequestMethod.POST);
+        request.addHeader("Content-Type", "application/json");
+        request.setBody("{\"type\":\"view\",\"scope\":\"anonymous\"}".getBytes());
+        String json = this.makeRequest(request).getBodyAsString();
+        try {
+            OneDriveError error;
+            if ((error = OneDriveError.parseError(json)) != null) {
+                throw new OneDriveException(error.toString());
+            }
+            JSONParser parser = new JSONParser();
+            JSONObject root = (JSONObject) parser.parse(json);
+            return ((JSONObject) root.get("link")).get("webUrl").toString();
+        } catch (ParseException e) {
+            throw new OneDriveException("API - response could not be processed", e);
+        }
     }
 }
