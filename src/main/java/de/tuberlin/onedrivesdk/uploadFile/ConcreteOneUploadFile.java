@@ -190,7 +190,7 @@ public class ConcreteOneUploadFile implements OneUploadFile {
     }
 
     @Override
-    public OneUploadFile cancelUpload() throws IOException, OneDriveAuthenticationException {
+    public OneUploadFile cancelUpload() throws IOException, OneDriveException {
         logger.info("Canceling upload");
         this.canceled = true;
         if (uploadSession != null) {

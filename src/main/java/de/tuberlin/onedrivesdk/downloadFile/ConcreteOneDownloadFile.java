@@ -1,5 +1,6 @@
 package de.tuberlin.onedrivesdk.downloadFile;
 
+import de.tuberlin.onedrivesdk.OneDriveException;
 import de.tuberlin.onedrivesdk.common.ConcreteOneDriveSDK;
 import de.tuberlin.onedrivesdk.file.ConcreteOneFile;
 import de.tuberlin.onedrivesdk.file.OneFile;
@@ -20,9 +21,9 @@ public class ConcreteOneDownloadFile implements OneDownloadFile {
 
     private static final Logger logger = LogManager.getLogger(ConcreteOneDownloadFile.class);
 
-    private final ConcreteOneFile metadata;
+    private final ConcreteOneFile     metadata;
     private final ConcreteOneDriveSDK api;
-    private final File destinationFile;
+    private final File                destinationFile;
 
     public ConcreteOneDownloadFile(ConcreteOneFile metadata, ConcreteOneDriveSDK api, File destinationFile) throws FileNotFoundException {
         this.metadata = metadata;
@@ -36,13 +37,13 @@ public class ConcreteOneDownloadFile implements OneDownloadFile {
     }
 
     @Override
-    public void startDownload() throws IOException, OneDriveAuthenticationException {
+    public void startDownload() throws IOException, OneDriveException {
         RandomAccessFile destination = new RandomAccessFile(this.destinationFile, "rw");
         try {
-            logger.info("Starting download of "+metadata.getName());
+            logger.info("Starting download of " + metadata.getName());
             destination.write(api.download(metadata.getId()));
         } finally {
-            logger.info("Finished download of "+this.metadata.getName());
+            logger.info("Finished download of " + this.metadata.getName());
             try {
                 destination.close();
             } catch (IOException e) {

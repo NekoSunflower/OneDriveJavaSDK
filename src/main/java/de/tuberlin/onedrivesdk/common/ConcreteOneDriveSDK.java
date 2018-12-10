@@ -288,7 +288,7 @@ public class ConcreteOneDriveSDK implements OneDriveSDK {
                                              String fileName) throws IOException, OneDriveException {
         String requestURL = "drive/items/%s:/%s:/createUploadSession";
 
-        String url = String.format(requestURL, folder.getId(), replaceFileName(fileName));
+        String url = String.format(requestURL, folder.getId(), fileName);
         PreparedRequest request = new PreparedRequest(url, PreparedRequestMethod.POST);
         request.addHeader("Content-Type", "application/json");
         request.setBody("{}".getBytes());
@@ -303,12 +303,6 @@ public class ConcreteOneDriveSDK implements OneDriveSDK {
             throw new OneDriveException(json);
         }
         return gson.fromJson(json, UploadSession.class);
-    }
-
-    private String replaceFileName(String fileName) {
-        Pattern pattern = Pattern.compile("[\\s\\\\/:\\*\\?\\\"<>\\|]");
-        Matcher matcher = pattern.matcher(fileName);
-        return matcher.replaceAll("");
     }
 
     /**
@@ -381,7 +375,7 @@ public class ConcreteOneDriveSDK implements OneDriveSDK {
      * @return OneResponse
      * @throws IOException
      */
-    public OneResponse makeRequest(String url, PreparedRequestMethod method, String json) throws IOException, OneDriveAuthenticationException {
+    public OneResponse makeRequest(String url, PreparedRequestMethod method, String json) throws IOException, OneDriveException {
         PreparedRequest request = new PreparedRequest(url, method);
         if (json != null) {
             request.addHeader("Content-Type", "application/json");
@@ -397,10 +391,15 @@ public class ConcreteOneDriveSDK implements OneDriveSDK {
      * @return OneResponse
      * @throws IOException
      */
-    public OneResponse makeRequest(PreparedRequest preparedRequest) throws IOException, OneDriveAuthenticationException {
+    public OneResponse makeRequest(PreparedRequest preparedRequest) throws IOException, OneDriveException {
 
         if (!this.session.isAuthenticated()) {
-            throw new OneDriveAuthenticationException("Session is no longer valid. Look for a failure of the refresh Thread in the log.");
+            synchronized (session) {
+                if (!this.session.isAuthenticated()) {
+                    logger.info("Session is no longer valid. Try refresh session.");
+                    this.session.refresh();
+                }
+            }
         }
 
         String url;
@@ -557,7 +556,7 @@ public class ConcreteOneDriveSDK implements OneDriveSDK {
      * @return byte[]
      * @throws IOException
      */
-    public byte[] download(String fileID) throws IOException, OneDriveAuthenticationException {
+    public byte[] download(String fileID) throws IOException, OneDriveException {
         session.getClient().newBuilder().followRedirects(true);
 
         String url = "drive/items/%s/content";

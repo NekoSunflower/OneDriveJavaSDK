@@ -224,7 +224,7 @@ public class ConsoleClient {
         OneFile tmpFile = currentFolderFiles.get(index);
         try {
             tmpFile.download(new File(pathToDownload)).startDownload();
-        } catch (OneDriveAuthenticationException e) {
+        } catch (OneDriveException e) {
             e.printStackTrace();
         }
     }
