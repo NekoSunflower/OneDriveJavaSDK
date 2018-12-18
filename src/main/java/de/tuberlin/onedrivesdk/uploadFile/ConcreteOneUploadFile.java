@@ -101,62 +101,67 @@ public class ConcreteOneUploadFile implements OneUploadFile {
             ConcreteOneFile finishedFile = null;
 
             OneResponse response;
-
+            boolean lastChunkUploaded = false;
+            int retry = 0;
             while (!canceled && !finished) {
                 shouldRun.lock();
+                try {
+                    if (!lastChunkUploaded) {
+                        response = api.makeRequest(this.uploadUrl, PreparedRequestMethod.GET, null);
 
-                long currFirstByte = randFile.getFilePointer();
-                PreparedRequest uploadChunk = new PreparedRequest(this.uploadUrl, PreparedRequestMethod.PUT);
-
-                if (currFirstByte + chunkSize < randFile.length()) {
-                    bytes = new byte[chunkSize];
-                } else {
-                    // optimistic cast, assuming the last bit of the file is
-                    // never bigger than MAXINT
-                    bytes = new byte[(int) (randFile.length() - randFile.getFilePointer())];
-                }
-                long start = randFile.getFilePointer();
-                randFile.readFully(bytes);
-
-                uploadChunk.setBody(bytes);
-                uploadChunk.addHeader("Content-Length", (randFile.getFilePointer() - start) + "");
-                uploadChunk.addHeader(
-                        "Content-Range",
-                        String.format("bytes %s-%s/%s", start, randFile.getFilePointer() - 1, randFile.length()));
-
-                logger.trace("Uploading chunk {} - {}", start, randFile.getFilePointer() - 1);
-                response = api.makeRequest(uploadChunk);
-                if (response.wasSuccess()) {
-                    if (response.getStatusCode() == 200 || response.getStatusCode() == 201) { // if last chunk upload was successful end the
-                        finished = true;
-                        finishedFile = gson.fromJson(response.getBodyAsString(), ConcreteOneFile.class);
-
-                    } else {
-                        //just continue
-                        uploadSession = gson.fromJson(response.getBodyAsString(),
-                                UploadSession.class);
-                        randFile.seek(uploadSession.getNextRange());
+                        if (response.wasSuccess()) {
+                            uploadSession = gson.fromJson(
+                                    response.getBodyAsString(), UploadSession.class);
+                            randFile.seek(uploadSession.getNextRange());
+                            logger.info("Fetched updated uploadSession. Server requests {} as next chunk", uploadSession.getNextRange());
+                        } else {
+                            logger.info("Something went wrong while uploading. Was unable to fetch the currentUpload session from the Server");
+                            throw new OneDriveException(
+                                    String.format("Could not get current upload status from Server, aborting. Message was: %s", response.getBodyAsString()));
+                        }
                     }
-                } else {
-                    logger.info("Something went wrong while uploading last chunk. Trying to fetch upload status from server to retry");
-                    logger.trace(response.getBodyAsString());
-                    response = api.makeRequest(this.uploadUrl, PreparedRequestMethod.GET, null);
+                    lastChunkUploaded = false;
+                    long currFirstByte = randFile.getFilePointer();
+                    PreparedRequest uploadChunk = new PreparedRequest(this.uploadUrl, PreparedRequestMethod.PUT);
 
+                    if (currFirstByte + chunkSize < randFile.length()) {
+                        bytes = new byte[chunkSize];
+                    } else {
+                        // optimistic cast, assuming the last bit of the file is
+                        // never bigger than MAXINT
+                        bytes = new byte[(int) (randFile.length() - randFile.getFilePointer())];
+                    }
+                    long start = randFile.getFilePointer();
+                    randFile.readFully(bytes);
+
+                    uploadChunk.setBody(bytes);
+                    uploadChunk.addHeader("Content-Length", (randFile.getFilePointer() - start) + "");
+                    uploadChunk.addHeader(
+                            "Content-Range",
+                            String.format("bytes %s-%s/%s", start, randFile.getFilePointer() - 1, randFile.length()));
+
+                    logger.trace("Uploading chunk {} - {}", start, randFile.getFilePointer() - 1);
+                    response = api.makeRequest(uploadChunk);
                     if (response.wasSuccess()) {
-                        uploadSession = gson.fromJson(
-                                response.getBodyAsString(), UploadSession.class);
-                        randFile.seek(uploadSession.getNextRange());
-                        logger.debug("Fetched updated uploadSession. Server requests {} as next chunk", uploadSession.getNextRange());
-
-                    } else {
+                        if (response.getStatusCode() == 200 || response.getStatusCode() == 201) { // if last chunk upload was successful end the
+                            finished = true;
+                            finishedFile = gson.fromJson(response.getBodyAsString(), ConcreteOneFile.class);
+                        } else {
+                            //just continue
+                            uploadSession = gson.fromJson(response.getBodyAsString(),
+                                    UploadSession.class);
+                            randFile.seek(uploadSession.getNextRange());
+                            lastChunkUploaded = true;
+                            retry = 0;
+                        }
+                    }
+                } catch (Throwable throwable) {
+                    logger.error("文件断点续传出错，重试(" + ++retry + "/5)次", throwable);
+                    if (retry >= 5) {
                         canceled = true;
-                        logger.info("Something went wrong while uploading. Was unable to fetch the currentUpload session from the Server");
-                        throw new OneDriveException(
-                                String.format("Could not get current upload status from Server, aborting. Message was: %s", response.getBodyAsString()));
+                        throw new OneDriveException("超出最大断点续传重试次数！");
                     }
                 }
-                shouldRun.unlock();
-
             }
             logger.info("finished upload");
 

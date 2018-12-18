@@ -3,13 +3,13 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.github.nekosunflower</groupId>
 	<artifactId>onedrivesdk</artifactId>
-    <version>0.0.4-SNAPSHOT</version>
+    <version>0.0.4</version>
 
 	<distributionManagement>
 		<repository>
 			<id>snapshots</id>
 			<name>sonatype-nexus-snapshots</name>
-			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
+			<url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
 		</repository>
 	</distributionManagement>
 
