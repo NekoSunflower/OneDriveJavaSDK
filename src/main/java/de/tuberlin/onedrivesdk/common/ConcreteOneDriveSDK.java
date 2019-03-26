@@ -1,10 +1,6 @@
 package de.tuberlin.onedrivesdk.common;
 
 import com.google.gson.Gson;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
 import de.tuberlin.onedrivesdk.OneDriveException;
 import de.tuberlin.onedrivesdk.OneDriveSDK;
 import de.tuberlin.onedrivesdk.drive.ConcreteOneDrive;
@@ -15,6 +11,10 @@ import de.tuberlin.onedrivesdk.folder.ConcreteOneFolder;
 import de.tuberlin.onedrivesdk.folder.OneFolder;
 import de.tuberlin.onedrivesdk.networking.*;
 import de.tuberlin.onedrivesdk.uploadFile.UploadSession;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONObject;
@@ -25,12 +25,10 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -63,8 +61,7 @@ public class ConcreteOneDriveSDK implements OneDriveSDK {
      * @return OneDriveSDK
      */
     public static OneDriveSDK createOneDriveConnection(String clientId, String clientSecret, String redirect_uri, ExceptionEventHandler handler, OneDriveScope[] scopes) {
-        OkHttpClient cli = new OkHttpClient();
-        cli.newBuilder().followRedirects(true);
+        OkHttpClient cli = new OkHttpClient.Builder().followRedirects(true).readTimeout(30, TimeUnit.SECONDS).connectTimeout(30, TimeUnit.SECONDS).writeTimeout(30, TimeUnit.SECONDS).build();
         OneDriveSession session = OneDriveSession.initializeSession(cli, clientId, clientSecret, redirect_uri, scopes);
         return new ConcreteOneDriveSDK(session);
     }

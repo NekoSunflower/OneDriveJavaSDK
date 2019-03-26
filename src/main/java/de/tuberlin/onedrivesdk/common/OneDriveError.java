@@ -9,9 +9,9 @@ import org.json.simple.parser.ParseException;
  * Data object for json transport
  */
 public class OneDriveError {
-    InnerError error;
+    private InnerError error;
 
-    public static OneDriveError parseError(String json)  throws ParseException{
+    public static OneDriveError parseError(String json) throws ParseException {
         JSONParser parser = new JSONParser();
         JSONObject root = (JSONObject) parser.parse(json);
         if (root.containsKey("error")) {
@@ -20,6 +20,10 @@ public class OneDriveError {
         }
 
         return null;
+    }
+
+    public InnerError getError() {
+        return error;
     }
 
     @Override

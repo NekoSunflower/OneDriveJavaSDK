@@ -6,13 +6,11 @@ import de.tuberlin.onedrivesdk.common.ConcreteOneDriveSDK;
 import de.tuberlin.onedrivesdk.file.ConcreteOneFile;
 import de.tuberlin.onedrivesdk.file.OneFile;
 import de.tuberlin.onedrivesdk.folder.ConcreteOneFolder;
-import de.tuberlin.onedrivesdk.networking.OneDriveAuthenticationException;
 import de.tuberlin.onedrivesdk.networking.OneResponse;
 import de.tuberlin.onedrivesdk.networking.PreparedRequest;
 import de.tuberlin.onedrivesdk.networking.PreparedRequestMethod;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.simple.parser.ParseException;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,11 +24,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public class ConcreteOneUploadFile implements OneUploadFile {
 
-    private static final int                 chunkSize = 320 * 1024 * 30; // (use a multiple value of 320KB, best practice of dev.onedrive)
+    private static final int                 chunkSize = 320 * 1024 * 100; // (use a multiple value of 320KB, best practice of dev.onedrive)
     private static final Logger              logger    = LogManager.getLogger(ConcreteOneUploadFile.class);
     private static final Gson                gson      = new Gson();
     private final        ReentrantLock       shouldRun = new ReentrantLock(true);
     private              File                fileToUpload;
+    private              ConcreteOneFolder   parentFolder;
+    private              String              fileName;
     private              ConcreteOneDriveSDK api;
     private              boolean             canceled  = false;
     private              boolean             finished  = false;
@@ -48,7 +48,8 @@ public class ConcreteOneUploadFile implements OneUploadFile {
         try {
             checkNotNull(parentFolder);
             this.api = checkNotNull(api);
-
+            this.parentFolder = parentFolder;
+            this.fileName = fileName;
             if (fileToUpload != null) {
                 if (fileToUpload.isFile()) {
                     if (fileToUpload.canRead()) {
@@ -98,15 +99,25 @@ public class ConcreteOneUploadFile implements OneUploadFile {
         try {
 
             byte[] bytes;
-            ConcreteOneFile finishedFile = null;
-
+            OneFile finishedFile = null;
             OneResponse response;
             boolean lastChunkUploaded = false;
             int retry = 0;
+
             while (!canceled && !finished) {
                 shouldRun.lock();
                 try {
                     if (!lastChunkUploaded) {
+                        try {
+                            OneFile fileByPath = api.getFileByPath(parentFolder.getName() + "\\/" + fileName);
+                            if (fileByPath.getSize() == fileToUpload.length()) {
+                                finished = true;
+                                finishedFile = fileByPath;
+                                logger.info("currentUpload file [" + fileName + "] was already exists, aborting.");
+                                break;
+                            }
+                        } catch (Throwable ignored) {
+                        }
                         response = api.makeRequest(this.uploadUrl, PreparedRequestMethod.GET, null);
 
                         if (response.wasSuccess()) {
@@ -145,27 +156,28 @@ public class ConcreteOneUploadFile implements OneUploadFile {
                     if (response.wasSuccess()) {
                         if (response.getStatusCode() == 200 || response.getStatusCode() == 201) { // if last chunk upload was successful end the
                             finished = true;
-                            finishedFile = gson.fromJson(response.getBodyAsString(), ConcreteOneFile.class);
+                            ConcreteOneFile oneFile = gson.fromJson(response.getBodyAsString(), ConcreteOneFile.class);
+                            oneFile.setApi(api);
+                            finishedFile = oneFile;
                         } else {
                             //just continue
-                            uploadSession = gson.fromJson(response.getBodyAsString(),
-                                    UploadSession.class);
+                            uploadSession = gson.fromJson(response.getBodyAsString(), UploadSession.class);
                             randFile.seek(uploadSession.getNextRange());
                             lastChunkUploaded = true;
                             retry = 0;
                         }
+                    } else {
+                        logger.error(String.format("文件[" + fileName + "]断点续传出错，重试(" + ++retry + "/5)次, Uploading chunk %s - %s failed, Message was: %s", start, randFile.getFilePointer() - 1, response.getBodyAsString()));
                     }
                 } catch (Throwable throwable) {
-                    logger.error("文件断点续传出错，重试(" + ++retry + "/5)次", throwable);
-                    if (retry >= 5) {
-                        canceled = true;
-                        throw new OneDriveException("超出最大断点续传重试次数！");
-                    }
+                    logger.error("文件[" + fileName + "]断点续传出错，重试(" + ++retry + "/5)次", throwable);
+                }
+                if (retry >= 5) {
+                    canceled = true;
+                    throw new OneDriveException("超出最大断点续传重试次数！");
                 }
             }
-            logger.info("finished upload");
-
-            finishedFile.setApi(api);
+            logger.info("finished upload [" + fileName + "]");
             return finishedFile;
         } finally {
             if (randFile != null) {
