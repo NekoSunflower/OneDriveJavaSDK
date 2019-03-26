@@ -32,29 +32,7 @@ A console client with several command can be found in de.tuberlin.onedrivesdk.ex
 5. More details can be found [here](https://dev.onedrive.com/app-registration.htm)
 
 ## Installation
-Download our latest release [here](https://github.com/tawalaya/OneDriveJavaSDK/releases) 
-
-Alternatively you can use maven. We host a maven artifact on github. The following code snippet can be used to for dependency management with maven.
-```xml
-...
-<repositories>
-    <repository>
-        <id>de.tuberlin</id>
-        <url>https://raw.github.com/tawalaya/onedrivejavasdk/mvn-repo/</url>
-        <snapshots>
-            <enabled>true</enabled>
-            <updatePolicy>always</updatePolicy>
-        </snapshots>
-    </repository>
-</repositories>
-
-<dependencies>
-    <dependency>
-        <groupId>de.tuberlin</groupId>
-        <artifactId>onedrivesdk</artifactId>
-        <version>0.0.4-SNAPSHOT</version>
-    </dependency>
-</dependencies>
+[![](https://jitpack.io/v/NekoSunflower/OneDriveJavaSDK.svg)](https://jitpack.io/#NekoSunflower/OneDriveJavaSDK)
 ...
 ```
 ## Recommended CodeFlow for user authentication
