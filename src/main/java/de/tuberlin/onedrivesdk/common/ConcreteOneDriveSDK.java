@@ -39,7 +39,7 @@ public class ConcreteOneDriveSDK implements OneDriveSDK {
     private static final Gson   gson   = new Gson();
 
     private String          baseUrl = "https://graph.microsoft.com/v1.0/me/";
-    private OneDriveSession session;
+    private transient OneDriveSession session;
 
     /**
      * Instantiates a new ConcreteOneDriveSDK.
